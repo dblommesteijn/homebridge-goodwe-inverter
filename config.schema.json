@@ -1,15 +1,37 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "HomebridgeSems",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
+      "hostname": {
+        "title": "Remote Hostname",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": "https://www.semsportal.com/"
+      },
+      "email": {
+        "title": "E-mail",
+        "type": "string",
+        "required": true,
+        "default": "your@example.com"
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true,
+        "default": "***"
+      },
+      "powerStationIds": {
+        "title": "Power Station IDs",
+        "type": "array",
+	      "required": true,
+        "items": {
+          "title": "Power Station ID",
+          "description": "UUIID found in: https://www.semsportal.com/PowerStation/PowerStatusSnMin/<power-station-uuid>",
+          "type": "string"
+        }
       }
     }
   }

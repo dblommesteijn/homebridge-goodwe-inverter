@@ -1,19 +1,26 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { ExamplePlatformAccessory } from './platformAccessory';
+// import { ExamplePlatformAccessory } from './platformAccessory';
+
+import request from 'request';
+import util from 'util';
+const requestPromise = util.promisify(request);
 
 /**
  * HomebridgePlatform
  * This class is the main constructor for your plugin, this is where you should
  * parse the user config and discover/register accessories with Homebridge.
  */
-export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
+export class HomeBridgeSems implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
+
+  private loginAttempts = 0;
+  private loginResponseBody: any = {};
 
   constructor(
     public readonly log: Logger,
@@ -49,68 +56,83 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
    * Accessories must only be registered once, previously created accessories
    * must not be registered again to prevent "duplicate UUID" errors.
    */
-  discoverDevices() {
+  async discoverDevices() {
+    this.log.debug('test');
+    for(const powerStationId of this.config.powerStationIds){
+      const powerStationData = await this.getPowerStationDataById(powerStationId);
+      this.log.debug(`powerStationData for: ${powerStationId}`, powerStationData);
 
-    // EXAMPLE ONLY
-    // A real plugin you would discover accessories from the local network, cloud services
-    // or a user-defined array in the platform config.
-    const exampleDevices = [
-      {
-        exampleUniqueId: 'ABCD',
-        exampleDisplayName: 'Bedroom',
-      },
-      {
-        exampleUniqueId: 'EFGH',
-        exampleDisplayName: 'Kitchen',
-      },
-    ];
-
-    // loop over the discovered devices and register each one if it has not already been registered
-    for (const device of exampleDevices) {
-
-      // generate a unique id for the accessory this should be generated from
-      // something globally unique, but constant, for example, the device serial
-      // number or MAC address
-      const uuid = this.api.hap.uuid.generate(device.exampleUniqueId);
-
-      // see if an accessory with the same uuid has already been registered and restored from
-      // the cached devices we stored in the `configureAccessory` method above
-      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
-
-      if (existingAccessory) {
-        // the accessory already exists
-        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        // existingAccessory.context.device = device;
-        // this.api.updatePlatformAccessories([existingAccessory]);
-
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new ExamplePlatformAccessory(this, existingAccessory);
-
-        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
-        // remove platform accessories when no longer present
-        // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-      } else {
-        // the accessory does not yet exist, so we need to create it
-        this.log.info('Adding new accessory:', device.exampleDisplayName);
-
-        // create a new accessory
-        const accessory = new this.api.platformAccessory(device.exampleDisplayName, uuid);
-
-        // store a copy of the device object in the `accessory.context`
-        // the `context` property can be used to store any data about the accessory you may need
-        accessory.context.device = device;
-
-        // create the accessory handler for the newly create accessory
-        // this is imported from `platformAccessory.ts`
-        new ExamplePlatformAccessory(this, accessory);
-
-        // link the accessory to your platform
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-      }
+      // TODO: implement current incoming: powerStationData.soc.power for generated in kW?a
+      // TODO: implement total per day: powerStationData.kpi.power for day total in kW
     }
+  }
+
+  async login() {
+    this.loginAttempts++;
+
+    const json = { account: this.config.email, pwd: this.config.password };
+    const response = await requestPromise({ uri: `${this.config.hostname}/api/v2/Common/CrossLogin`, method: 'POST', json: json,
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json',
+        'token': '{"version":"","client":"ios","language":"en"}'},
+      rejectUnauthorized: false, requestCert: true, resolveWithFullResponse: true });
+
+    this.log.debug('login response: ', response.statusCode);
+    if(response.statusCode === 200) {
+      this.log.debug('login response: ', response.body);
+      this.loginResponseBody = response.body;
+      this.log.info('Login successful');
+    } else {
+      this.log.error('Authorization failed', response.statusCode);
+      this.clearAuthenticationAndSleepAfterTooManyAttempts();
+      return await this.login();
+    }
+  }
+
+  async getPowerStationDataById(powerStationId) {
+    await this.login();
+
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json',
+      'token': JSON.stringify(this.loginResponseBody.data)};
+    const response = await requestPromise({ uri: `${this.loginResponseBody.api}v2/PowerStation/GetMonitorDetailByPowerstationId`,
+      method: 'POST',
+      json: { powerStationId: powerStationId },
+      headers: headers,
+      rejectUnauthorized: false, requestCert: true, resolveWithFullResponse: true });
+
+    if (response.statusCode !== 200) {
+      this.log.error('Data unexpected response: ', response.statusCode);
+      await this.clearAuthenticationAndSleepAfterTooManyAttempts();
+      return await this.getPowerStationDataById(powerStationId);
+    } else {
+      this.log.debug('data response: ', response.statusCode, response.body);
+    }
+    return response.body.data;
+  }
+
+  timeout(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms));
+  }
+
+  async sleep(fn, ...args) {
+    await this.timeout(5000);
+    return fn(...args);
+  }
+
+  async clearAuthenticationAndSleepAfterTooManyAttempts() {
+    this.loginResponseBody = {};
+    // wait before trying again
+    if(this.loginAttempts > 1) {
+      this.log.info('Login attempt surpassing 1, sleeping for 5 second..');
+      await this.sleep(() => {
+        this.log.debug('sleeping...');
+      });
+    }
+  }
+
+  async haltOnConfigError(errorMessage) {
+    this.log.info(`Configuration error: ${errorMessage}`);
+    await this.sleep(() => {
+      this.log.debug('sleeping...');
+    });
   }
 }
