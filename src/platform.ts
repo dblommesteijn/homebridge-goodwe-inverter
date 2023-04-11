@@ -18,6 +18,7 @@ export class HomebridgeSems implements DynamicPlatformPlugin {
   public readonly accessories: PlatformAccessory[] = [];
 
   private loginAttempts = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private loginResponseBody: any = {};
 
   constructor(
