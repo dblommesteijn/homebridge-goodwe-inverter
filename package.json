@@ -1,9 +1,9 @@
 {
-  "private": true,
+  "private": false,
   "displayName": "Homebridge SEMS",
   "name": "homebridge-plusems",
   "version": "0.0.1",
-  "description": "This plugin consumes the API from SEMS portal for GoodWE inverters",
+  "description": "This plugin consumes the API from SEMS portal for GoodWE inverters (for solar power)",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -28,7 +28,8 @@
   ],
   "dependencies": {
     "request": "^2.88.2",
-    "util": "^0.12.4"
+    "util": "^0.12.4",
+    "dig-ts": ">= 2.9"
   },
   "devDependencies": {
     "@types/node": "^16.10.9",

@@ -32,6 +32,24 @@
           "description": "UUIID found in: https://www.semsportal.com/PowerStation/PowerStatusSnMin/<power-station-uuid>",
           "type": "string"
         }
+      },
+      "showCurrentPowerLevel": {
+        "title": "Show current power level (Watt)",
+        "type": "boolean",
+        "required": true,
+        "default": true
+      },
+      "showDayTotal": {
+        "title": "Show total Day generation (Watt)",
+        "type": "boolean",
+        "required": true,
+        "default": true
+      },
+      "showInternalTemperature": {
+        "title": "Show Internal Temperature (degrees C)",
+        "type": "boolean",
+        "required": true,
+        "default": true
       }
     }
   }

@@ -5,14 +5,12 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 
 import request from 'request';
 import util from 'util';
+import { PowerStationAccessory } from './powerStationAccessory';
+import { ElectricityWattAccessory } from './electricityWattAccessory';
+import { TemperatureAccessory } from './temperatureAccessory';
 const requestPromise = util.promisify(request);
 
-/**
- * HomebridgePlatform
- * This class is the main constructor for your plugin, this is where you should
- * parse the user config and discover/register accessories with Homebridge.
- */
-export class HomeBridgeSems implements DynamicPlatformPlugin {
+export class HomebridgeSems implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
@@ -28,46 +26,98 @@ export class HomeBridgeSems implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     this.log.debug('Finished initializing platform:', this.config.name);
-
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });
   }
 
-  /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to setup event handlers for characteristics and update respective values.
-   */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
-
-    // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.push(accessory);
   }
 
-  /**
-   * This is an example method showing how to register discovered accessories.
-   * Accessories must only be registered once, previously created accessories
-   * must not be registered again to prevent "duplicate UUID" errors.
-   */
-  async discoverDevices() {
-    this.log.debug('test');
-    for(const powerStationId of this.config.powerStationIds){
-      const powerStationData = await this.getPowerStationDataById(powerStationId);
-      this.log.debug(`powerStationData for: ${powerStationId}`, powerStationData);
+  loadElectricityAccessory(powerStationId, powerStationData, dataDigPath, name, multiplier = 1): ElectricityWattAccessory {
+    const uuid = this.api.hap.uuid.generate(`power_station_${powerStationId}_${dataDigPath.join()}`);
+    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+    let ret;
 
-      // TODO: implement current incoming: powerStationData.soc.power for generated in kW?a
-      // TODO: implement total per day: powerStationData.kpi.power for day total in kW
+    if(existingAccessory) {
+      this.log.info('found cached accessory', existingAccessory.displayName);
+      ret = new ElectricityWattAccessory(this, existingAccessory);
+    } else {
+      this.log.info('found new accessory', name);
+      const accessory = new this.api.platformAccessory(name, uuid);
+      accessory.context.device = { data: powerStationData, dataDigPath: dataDigPath, id: powerStationId, name: name,
+        multiplier: multiplier };
+      ret = new ElectricityWattAccessory(this, accessory);
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    }
+    return ret;
+  }
+
+  loadTemperatureAccessory(powerStationId, powerStationData, dataDigPath, name, multiplier = 1): ElectricityWattAccessory {
+    const uuid = this.api.hap.uuid.generate(`power_station_${powerStationId}_${dataDigPath.join()}`);
+    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+    let ret;
+
+    if(existingAccessory) {
+      this.log.info('found cached accessory', existingAccessory.displayName);
+      ret = new TemperatureAccessory(this, existingAccessory);
+    } else {
+      this.log.info('found new accessory', name);
+      const accessory = new this.api.platformAccessory(name, uuid);
+      accessory.context.device = { data: powerStationData, dataDigPath: dataDigPath, id: powerStationId, name: name,
+        multiplier: multiplier };
+      ret = new TemperatureAccessory(this, accessory);
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    }
+    return ret;
+  }
+
+  async discoverDevices() {
+    // iterate all configured power-stations
+    for(const powerStationId of this.config.powerStationIds){
+      // load power-station-data form API
+      const powerStationData = await this.getPowerStationDataById(powerStationId);
+      this.log.debug('powerStationData for:', powerStationId);
+      const accessories: PowerStationAccessory[] = [];
+
+      if(this.config.showCurrentPowerLevel) {
+        accessories.push(
+          this.loadElectricityAccessory(powerStationId, powerStationData, ['kpi', 'pac'], 'Current Production W', 1));
+      }
+
+      if(this.config.showDayTotal) {
+        accessories.push(
+          this.loadElectricityAccessory(powerStationId, powerStationData, ['kpi', 'power'], 'Day Production Wh', 1000));
+      }
+
+      if(this.config.showInternalTemperature) {
+        // NOTE: tempperature is not a typo :-D
+        accessories.push(
+          this.loadTemperatureAccessory(powerStationId, powerStationData, ['inverter', 0, 'tempperature'], 'Internal Temperature', 1));
+      }
+
+      // update all accessories with new data
+      this.fetchPowerStationUpdate(5000, powerStationId, accessories);
     }
   }
 
+  async fetchPowerStationUpdate(timeout: number, powerStationId, accessories) {
+    setInterval(async () => {
+      const powerStationData = await this.getPowerStationDataById(powerStationId);
+      this.log.debug('fetchPowerStationUpdate', powerStationId, accessories.length);
+      for(const accessory of accessories) {
+        accessory.update(powerStationData);
+      }
+    }, timeout);
+  }
+
   async login() {
+    if(this.loginResponseBody.data) {
+      return;
+    }
     this.loginAttempts++;
 
     const json = { account: this.config.email, pwd: this.config.password };
@@ -78,7 +128,6 @@ export class HomeBridgeSems implements DynamicPlatformPlugin {
 
     this.log.debug('login response: ', response.statusCode);
     if(response.statusCode === 200) {
-      this.log.debug('login response: ', response.body);
       this.loginResponseBody = response.body;
       this.log.info('Login successful');
     } else {
@@ -104,7 +153,7 @@ export class HomeBridgeSems implements DynamicPlatformPlugin {
       await this.clearAuthenticationAndSleepAfterTooManyAttempts();
       return await this.getPowerStationDataById(powerStationId);
     } else {
-      this.log.debug('data response: ', response.statusCode, response.body);
+      // this.log.debug('data response: ', response.statusCode, response.body);
     }
     return response.body.data;
   }
@@ -127,12 +176,5 @@ export class HomeBridgeSems implements DynamicPlatformPlugin {
         this.log.debug('sleeping...');
       });
     }
-  }
-
-  async haltOnConfigError(errorMessage) {
-    this.log.info(`Configuration error: ${errorMessage}`);
-    await this.sleep(() => {
-      this.log.debug('sleeping...');
-    });
   }
 }
