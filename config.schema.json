@@ -1,37 +1,49 @@
 {
-  "pluginAlias": "HomebridgeSems",
+  "pluginAlias": "HomebridgeGoodWeInverter",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "hostname": {
-        "title": "Remote Hostname",
-        "type": "string",
-        "required": true,
-        "default": "https://www.semsportal.com/"
-      },
-      "email": {
-        "title": "E-mail",
-        "type": "string",
-        "required": true,
-        "default": "your@example.com"
-      },
-      "password": {
-        "title": "Password",
-        "type": "string",
-        "required": true,
-        "default": "***"
-      },
-      "powerStationIds": {
-        "title": "Power Station IDs",
+      "localIps": {
+        "title": "Local Inverters",
         "type": "array",
 	      "required": true,
         "items": {
-          "title": "Power Station ID",
-          "description": "UUIID found in: https://www.semsportal.com/PowerStation/PowerStatusSnMin/<power-station-uuid>",
-          "type": "string"
+          "type": "object",
+          "properties": {
+            "localIp": {
+              "title": "Local IP",
+              "type": "string",
+              "required": true,
+              "default": "192.168.x.x"
+            },
+            "port": {
+              "title": "Port",
+              "type": "string",
+              "required": true,
+              "default": "8899"
+            },
+            "timeout": {
+              "title": "Timeout",
+              "type": "integer",
+              "required": true,
+              "default": 1000
+            },
+            "options": {
+              "title": "Options",
+              "type": "string",
+              "required": true,
+              "default": "0x7f0375940049d5c2"
+            }
+          }
         }
+      },
+      "SFKLocation": {
+        "title": "Location of sfk",
+        "type": "string",
+        "required": true,
+        "default": "/usr/bin/sfk"
       },
       "showCurrentPowerLevel": {
         "title": "Show current power level (Watt)",

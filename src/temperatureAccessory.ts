@@ -1,5 +1,5 @@
 import { Service, PlatformAccessory } from 'homebridge';
-import { HomebridgeSems } from './platform';
+import { HomebridgeGoodWeInverter } from './platform';
 import { PowerStationAccessory } from './powerStationAccessory';
 import { dig } from 'dig-ts';
 
@@ -8,7 +8,7 @@ export class TemperatureAccessory extends PowerStationAccessory {
   private service: Service;
 
   constructor(
-    private readonly platform: HomebridgeSems,
+    private readonly platform: HomebridgeGoodWeInverter,
     private readonly accessory: PlatformAccessory,
   ) {
     super();
@@ -26,11 +26,7 @@ export class TemperatureAccessory extends PowerStationAccessory {
   }
 
   async update(powerStationData) {
-    let value = dig(powerStationData, this.accessory.context.device.dataDigPath).get() as number;
-    const multiplier = this.accessory.context.device.multiplier;
-    if(multiplier) {
-      value = value * multiplier;
-    }
+    const value = dig(powerStationData, this.accessory.context.device.dataDigPath).get() as number;
     this.setValue(value);
   }
 

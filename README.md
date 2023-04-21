@@ -4,9 +4,9 @@
 </p>
 
 
-# Homebridge Sems
+# Homebridge GoodWe Inverter
 
-This homebridge plugin consumes the SEMS portal for GoodWE inverters.
+This homebridge plugin consumes the local broadcasted status by GoodWe Inverters.
 
 ## Setup Development Environment
 
@@ -14,6 +14,16 @@ To develop Homebridge plugins you must have Node.js 12 or later installed, and a
 * [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
 
 ## Install Development Dependencies and Run Locally
+
+You need to install the Swiss File Knife: http://stahlworks.com/dev/swiss-file-knife.html. For Mac it's available via Homebrew: https://formulae.brew.sh/formula/sfk
+
+```
+brew install sfk
+```
+
+_NOTE: For other platforms, like Raspberry PI, I recomend downloading the binary from Stahlworks' website._
+
+## Installing NPM and dependencies
 
 Using a terminal, navigate to the project folder and run this command to install the development dependencies:
 

@@ -1,11 +1,11 @@
 import { API } from 'homebridge';
 
 import { PLATFORM_NAME } from './settings';
-import { HomebridgeSems } from './platform';
+import { HomebridgeGoodWeInverter } from './platform';
 
 /**
  * This method registers the platform with Homebridge
  */
 export = (api: API) => {
-  api.registerPlatform(PLATFORM_NAME, HomebridgeSems);
+  api.registerPlatform(PLATFORM_NAME, HomebridgeGoodWeInverter);
 };

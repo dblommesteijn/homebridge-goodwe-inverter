@@ -1,9 +1,9 @@
 /**
  * This is the name of the platform that users will use to register the plugin in the Homebridge config.json
  */
-export const PLATFORM_NAME = 'HomebridgeSems';
+export const PLATFORM_NAME = 'HomebridgeGoodWeInverter';
 
 /**
  * This must match the name of your plugin as defined the package.json
  */
-export const PLUGIN_NAME = 'homebridge-sems';
+export const PLUGIN_NAME = 'homebridge-goodwe-inverter';

@@ -1,16 +1,16 @@
 {
   "private": false,
-  "displayName": "Homebridge SEMS",
-  "name": "homebridge-plusems",
-  "version": "0.0.1",
-  "description": "This plugin consumes the API from SEMS portal for GoodWE inverters (for solar power)",
+  "displayName": "Homebridge GoodWe Inverter",
+  "name": "homebridge-goodwe-inverter",
+  "version": "0.0.2",
+  "description": "This plugin consumes the Local IP that is broadcased via UDP from any GoodWe Inverter",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dblommesteijn/homebridge-sems.git"
+    "url": "https://github.com/dblommesteijn/homebridge-goodwe-inverter.git"
   },
   "bugs": {
-    "url": "https://github.com/dblommesteijn/homebridge-sems/issues"
+    "url": "https://github.com/dblommesteijn/homebridge-goodwe-inverter/issues"
   },
   "engines": {
     "node": ">=14.18.1",
