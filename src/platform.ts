@@ -16,7 +16,6 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private loginResponseBody: any = {};
   private retry: any = {};
 
   constructor(
@@ -103,6 +102,7 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
       this.log.debug('cmd:response:stdout', stdout);
       this.log.debug('cmd:response:stderr', stderr);
       output = stdout;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch(e: any) {
       // NOTE: not sure why it raises an exception and exitcode == 1
       this.log.debug('cmd:error', e.stdout);
