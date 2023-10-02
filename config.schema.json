@@ -52,7 +52,13 @@
         "default": true
       },
       "showDayTotal": {
-        "title": "Show total Day generation (Watt)",
+        "title": "Show total Day generation (Watt hour)",
+        "type": "boolean",
+        "required": true,
+        "default": true
+      },
+      "showTotal": {
+        "title": "Show total generation (Mega Watt hour)",
         "type": "boolean",
         "required": true,
         "default": true

@@ -125,10 +125,11 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
 
   parseInverter(output) {
     this.log.debug('parseInverter:output', output);
-    const ret = { internalTemperature: 0, mode: '', generationToday: 0, power: 0 };
+
+    const ret = { internalTemperature: -1, mode: '', generationToday: -1, power: -1, generationTotal: -1 };
     const temperatureIndex = 174;
     const temperature = Number('0x' + output.substring(temperatureIndex, temperatureIndex + 4)) / 10;
-    if(temperature && temperature > 0) {
+    if(temperature && temperature < 80 && temperature > -20) {
       ret.internalTemperature = temperature;
     }
 
@@ -160,6 +161,13 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
       ret.power = power;
     }
 
+    const generationTotalIndex = 190;
+    const generationTotal = Number('0x' + output.substring(generationTotalIndex, generationTotalIndex + 8)) / 10000;
+    if (generationTotal > 0) {
+      ret.generationTotal = generationTotal;
+    }
+
+
     return ret;
   }
 
@@ -170,17 +178,21 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
       const inverterData = await this.lookupLocalInstance(localInstanceConfig);
       if(this.config.showCurrentPowerLevel) {
         accessories.push(
-          this.loadElectricityAccessory(localInstanceConfig, inverterData, ['power'], 'Current Production W'));
+          this.loadElectricityAccessory(localInstanceConfig, inverterData, ['power'], 'Generation Watt'));
       }
       if(this.config.showDayTotal) {
         accessories.push(
-          this.loadElectricityAccessory(localInstanceConfig, inverterData, ['generationToday'], 'Day Production Wh'));
+          this.loadElectricityAccessory(localInstanceConfig, inverterData, ['generationToday'], 'Day Generation Wh'));
       }
       if(this.config.showInternalTemperature) {
         accessories.push(
-          this.loadTemperatureAccessory(localInstanceConfig, inverterData, ['internalTemperature'], 'Internal Temp C'));
+          this.loadTemperatureAccessory(localInstanceConfig, inverterData, ['internalTemperature'], 'Internal Temperature'));
       }
-      this.fetchLocalInstanceUpdate(10000, localInstanceConfig, accessories);
+      if(this.config.showTotal) {
+        accessories.push(
+          this.loadElectricityAccessory(localInstanceConfig, inverterData, ['generationTotal'], 'Total Generation MWh'));
+      }
+      this.fetchLocalInstanceUpdate(localInstanceConfig.timeout + 500, localInstanceConfig, accessories);
     }
   }
 
@@ -189,6 +201,7 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
       const inverterData = await this.lookupLocalInstance(localInstanceConfig);
       this.log.debug(`fetchPowerStationUpdate local-instance: ${localInstanceConfig.localIp}:${localInstanceConfig.port} ` +
         `with # ${accessories.length} accessories`);
+      this.log.debug('inverterData', inverterData);
       for(const accessory of accessories) {
         accessory.update(inverterData);
       }

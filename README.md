@@ -1,12 +1,6 @@
-
-<p align="center">
-    <img src="https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png" width="150">
-</p>
-
-
 # Homebridge GoodWe Inverter
 
-This homebridge plugin consumes the local broadcasted status by GoodWe Inverters.
+This homebridge plugin consumes the local broadcasted status by GoodWe Inverters on port 8899 (UDP).
 
 ## Setup Development Environment
 
