@@ -35,27 +35,6 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  // loadElectricityAccessory(inverterData, dataDigPa)
-
-  // loadElectricityAccessory(powerStationId, powerStationData, dataDigPath, name, multiplier = 1): ElectricityWattAccessory {
-  //   const uuid = this.api.hap.uuid.generate(`power_station_${powerStationId}_${dataDigPath.join()}`);
-  //   const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
-  //   let ret;
-
-  //   if(existingAccessory) {
-  //     this.log.info('found cached accessory', existingAccessory.displayName);
-  //     ret = new ElectricityWattAccessory(this, existingAccessory);
-  //   } else {
-  //     this.log.info('found new accessory', name);
-  //     const accessory = new this.api.platformAccessory(name, uuid);
-  //     accessory.context.device = { data: powerStationData, dataDigPath: dataDigPath, id: powerStationId, name: name,
-  //       multiplier: multiplier };
-  //     ret = new ElectricityWattAccessory(this, accessory);
-  //     this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-  //   }
-  //   return ret;
-  // }
-
   loadElectricityAccessory(localInstanceConfig, instanceData, dataDigPath, name): ElectricityWattAccessory {
     const uuid = this.api.hap.uuid.generate(`local_instance_${localInstanceConfig.localIp}_${dataDigPath.join()}`);
     const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -98,7 +77,7 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
     this.log.debug('running cmd: ', cmd);
     let output = '';
     try {
-      const { stdout, stderr } = await execPromise(cmd);
+      const { stdout, stderr } = await execPromise(cmd, { timeout: localInstanceConfig.timeout as number, killSignal: 'SIGKILL' });
       this.log.debug('cmd:response:stdout', stdout);
       this.log.debug('cmd:response:stderr', stderr);
       output = stdout;
@@ -108,25 +87,13 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
       this.log.debug('cmd:error', e.stdout);
       output = e.stdout;
     }
-    if (output === '[timeout]') {
-      if(!this.retry[localInstanceConfig.localIp]) {
-        this.retry[localInstanceConfig.localIp] = 0;
-      }
-      this.retry[localInstanceConfig.localIp]++;
-      await this.sleep(10000, () => {
-        this.log.debug('sleeping...');
-      });
-      return await this.lookupLocalInstance(localInstanceConfig);
-    }
-
     // TODO: add error output here!
     return this.parseInverter(output);
   }
 
   parseInverter(output) {
     this.log.debug('parseInverter:output', output);
-
-    const ret = { internalTemperature: -1, mode: '', generationToday: -1, power: -1, generationTotal: -1 };
+    const ret = { internalTemperature: -1, mode: 'offline', generationToday: -1, power: -1, generationTotal: -1 };
     const temperatureIndex = 174;
     const temperature = Number('0x' + output.substring(temperatureIndex, temperatureIndex + 4)) / 10;
     if(temperature && temperature < 80 && temperature > -20) {
@@ -150,7 +117,7 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
     // in kWh
     const generationTodayIndex = 186;
     const generationToday = Number('0x' + output.substring(generationTodayIndex, generationTodayIndex + 4)) * 100;
-    if (generationToday > 0) {
+    if (generationToday >= 0) {
       ret.generationToday = generationToday;
     }
 
@@ -176,6 +143,9 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
     for(const localInstanceConfig of this.config.localIps) {
       const accessories: PowerStationAccessory[] = [];
       const inverterData = await this.lookupLocalInstance(localInstanceConfig);
+
+      // TODO: add some timeout values, and wait upon timeout with requesting new lookup.
+
       if(this.config.showCurrentPowerLevel) {
         accessories.push(
           this.loadElectricityAccessory(localInstanceConfig, inverterData, ['power'], 'Generation Watt'));
@@ -192,6 +162,8 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
         accessories.push(
           this.loadElectricityAccessory(localInstanceConfig, inverterData, ['generationTotal'], 'Total Generation MWh'));
       }
+
+      // TODO: check if this will still work with a timeout catch around the block..
       this.fetchLocalInstanceUpdate(localInstanceConfig.timeout + 500, localInstanceConfig, accessories);
     }
   }
