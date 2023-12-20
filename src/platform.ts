@@ -77,7 +77,7 @@ export class HomebridgeGoodWeInverter implements DynamicPlatformPlugin {
     this.log.debug('running cmd: ', cmd);
     let output = '';
     try {
-      const { stdout, stderr } = await execPromise(cmd, { timeout: localInstanceConfig.timeout as number, killSignal: 'SIGKILL' });
+      const { stdout, stderr } = await execPromise(cmd);
       this.log.debug('cmd:response:stdout', stdout);
       this.log.debug('cmd:response:stderr', stderr);
       output = stdout;
