@@ -1,22 +1,10 @@
----
-name: Bug Report
-about: Create a report to help us improve
-title: ''
-labels: bug
-assignees: ''
-
----
-
 <!-- You must use the issue template below when submitting a bug -->
 
-**Describe The Bug:**
+**Describe The Bug in a sentence:**
 <!-- A clear and concise description of what the bug is. -->
 
-**To Reproduce:**
+**Steps to Reproduce:**
 <!-- Steps to reproduce the behavior. -->
-
-**Expected behavior:**
-<!-- A clear and concise description of what you expected to happen. -->
 
 **Logs:**
 
@@ -24,14 +12,20 @@ assignees: ''
 Show the Homebridge logs here, remove any sensitive information.
 ```
 
+**SFK command output**
+
+<!-- Provide output of the following command (place your inverter's IP). -->
+
+```bash
+sfk cudp <inverter_ip> 8899 -listen -noerror -timeout=5000 0x7f0375940049d5c2 -pure +xed "/[eol]//"
+```
+
+
 **Plugin Config:**
 
 ```json
 Show your Homebridge config.json here, remove any sensitive information.
 ```
-
-**Screenshots:**
-<!-- If applicable, add screenshots to help explain your problem. -->
 
 **Environment:**
 
