@@ -17,7 +17,16 @@ brew install sfk
 
 _NOTE: For other platforms, like Raspberry PI, I recomend downloading the binary from Stahlworks' website._
 
-## Installing NPM and dependencies
+## Troubleshooting
+
+You'll need to make sure SFK is configured and working with your setup.
+When the plugin is not responding the appropriate responses, please first try to run the following command:
+
+```bash
+sfk cudp <inverter_ip> 8899 -listen -noerror -timeout=5000 0x7f0375940049d5c2 -pure +xed "/[eol]//"
+```
+
+## Installing NPM and dependencies for local-dev
 
 Using a terminal, navigate to the project folder and run this command to install the development dependencies:
 
